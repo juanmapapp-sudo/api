@@ -17,6 +17,8 @@ export async function getUser(req, res) {
   if(!user) {
     return res.status(400).json({ success: false, message: ERROR_USER_NOT_FOUND });
   }
+  delete user.password;
+  delete user.currentOtp;
   return res.json({ success: true, data: user });
 }
 
