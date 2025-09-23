@@ -6,16 +6,21 @@ import {
   SAVE_RECENT_PLACE_SUCCESS,
   REMOVE_RECENT_PLACE_SUCCESS
 } from '../constants/user.constant.js';
-import { getById, updateUser, addRecentPlaces, getRecentPlaceById, deleteRecentPlaces } from '../services/user.service.js';
+import { getById, updateUser, addRecentPlaces, getRecentPlaceById, deleteRecentPlaces, getRecentPlaceByUserId } from '../services/user.service.js';
 
 export async function getUser(req, res) {
   const { userId } = req.params;
   if(!userId) {
       return res.status(400).json({ success: false, message: "Missing userId params" });
   }
-  const user = await getById(userId);
+  let user = await getById(userId);
   if(!user) {
     return res.status(400).json({ success: false, message: ERROR_USER_NOT_FOUND });
+  }
+  const recentPlaces = await getRecentPlaceByUserId(userId);
+  user = {
+    ...user,
+    recentPlaces
   }
   delete user.password;
   delete user.currentOtp;
@@ -54,7 +59,7 @@ export async function update(req, res) {
 }
 
 export async function saveRecentPlaces(req, res) {
-  const { userId, name, formattedAddress, lat, lng, types } = req.body;
+  const { userId, placeId, name, formattedAddress, lat, lng, types } = req.body;
 
   let user, recentPlace;
 
@@ -64,7 +69,7 @@ export async function saveRecentPlaces(req, res) {
     if(!user) {
       return res.status(400).json({ success: false, message: ERROR_USER_NOT_FOUND });
     } else {
-      recentPlace = await addRecentPlaces(userId, name, formattedAddress, lat, lng, JSON.stringify(types));
+      recentPlace = await addRecentPlaces(userId, placeId, name, formattedAddress, lat, lng, JSON.stringify(types));
     }
     
   } catch (error) {
@@ -75,20 +80,20 @@ export async function saveRecentPlaces(req, res) {
 }
 
 export async function removeRecentPlace(req, res) {
-  const { recentPlaceId } = req.params;
-  if(!recentPlaceId) {
-      return res.status(400).json({ success: false, message: "Missing recentPlaceId params" });
+  const { placeId } = req.params;
+  if(!placeId) {
+      return res.status(400).json({ success: false, message: "Missing placeId params" });
   }
 
   let recentPlace;
 
   try {
 
-    recentPlace = await getRecentPlaceById(recentPlaceId);
+    recentPlace = await getRecentPlaceById(placeId);
     if(!recentPlace) {
       return res.status(400).json({ success: false, message: ERROR_RECENT_PLACE_NOT_FOUND });
     } else {
-      await deleteRecentPlaces(recentPlaceId);
+      await deleteRecentPlaces(placeId);
     }
     
   } catch (error) {

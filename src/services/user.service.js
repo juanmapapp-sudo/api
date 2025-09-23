@@ -29,36 +29,48 @@ export async function updateUser(userId, firstName, lastName, email, birthDate, 
   return camelcaseKeys(result.rows[0]);
 }
 
-export async function getRecentPlaceById(recentPlaceId) {
+export async function getRecentPlaceByUserId(userId) {
   const sql = `
     SELECT *
     FROM dbo."RecentPlaces"
-    WHERE "RecentPlaceId" = $1
+    WHERE "UserId" = $1
     LIMIT 1;
   `;
-  const result = await pool.query(sql, [recentPlaceId]);
+  const result = await pool.query(sql, [userId]);
+  if (result.rows.length === 0) return [];
+  return camelcaseKeys(result.rows);
+}
+
+export async function getRecentPlaceById(placeId) {
+  const sql = `
+    SELECT *
+    FROM dbo."RecentPlaces"
+    WHERE "PlaceId" = $1
+    LIMIT 1;
+  `;
+  const result = await pool.query(sql, [placeId]);
   if (result.rows.length === 0) return null;
   return camelcaseKeys(result.rows[0]);
 }
 
-export async function addRecentPlaces(userId, name, formattedAddress, lat, lng, types) {
+export async function addRecentPlaces(userId, placeId, name, formattedAddress, lat, lng, types) {
   const sql = `
-    INSERT INTO dbo."RecentPlaces" ("UserId", "Name", "FormattedAddress", "Lat", "Lng", "Types")
-    VALUES ($1,$2,$3,$4,$5,$6)
-    RETURNING "RecentPlaceId", "UserId", "Name", "FormattedAddress", "Lat", "Lng", "Types", "CreatedAt";
+    INSERT INTO dbo."RecentPlaces" ("UserId", "PlaceId", "Name", "FormattedAddress", "Lat", "Lng", "Types")
+    VALUES ($1,$2,$3,$4,$5,$6,$7)
+    RETURNING "RecentPlaceId", "UserId", "PlaceId", "Name", "FormattedAddress", "Lat", "Lng", "Types", "CreatedAt";
   `;
-  const params = [userId, name, formattedAddress, lat, lng, types]; // Default OTP for now
+  const params = [userId, placeId, name, formattedAddress, lat, lng, types]; // Default OTP for now
   const result = await pool.query(sql, params);
   return camelcaseKeys(result.rows[0]);
 }
 
-export async function deleteRecentPlaces(recentPlaceId) {
+export async function deleteRecentPlaces(placeId) {
   const sql = `
     DELETE
     FROM dbo."RecentPlaces"
-    WHERE "RecentPlaceId" = $1;
+    WHERE "PlaceId" = $1;
   `;
-  const result = await pool.query(sql, [recentPlaceId]);
+  const result = await pool.query(sql, [placeId]);
   if (result.rows.length === 0) return null;
   return camelcaseKeys(result.rows[0]);
 }

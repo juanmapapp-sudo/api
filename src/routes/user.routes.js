@@ -155,6 +155,8 @@ router.put('/:userId', [
  *             properties:
  *               userId:
  *                 type: string
+ *               placeId:
+ *                 type: string
  *               name:
  *                 type: string
  *               formattedAddress:
@@ -189,6 +191,8 @@ router.put('/:userId', [
  *                   type: object
  *                   properties:
  *                     userId:
+ *                       type: string
+ *                     placeId:
  *                       type: string
  *                     name:
  *                       type: string
@@ -230,13 +234,13 @@ router.post('/save-recent-places', [
 
 /**
  * @openapi
- * /api/user/remove-recent-place/{recentPlaceId}:
+ * /api/user/remove-recent-place/{placeId}:
  *   delete:
  *     tags: [User]
  *     summary: Remove recent place
  *     parameters:
  *       - in: path
- *         name: recentPlaceId
+ *         name: placeId
  *         required: true
  *         schema:
  *           type: string
@@ -255,6 +259,8 @@ router.post('/save-recent-places', [
  *                   properties:
  *                     userId:
  *                       type: string
+ *                     placeId:
+ *                       type: string
  *                     name:
  *                       type: string
  *                     formattedAddress:
@@ -270,5 +276,5 @@ router.post('/save-recent-places', [
  *       401:
  *         description: Invalid data
  */
-router.delete("/remove-recent-place/:recentPlaceId", asyncHandler(removeRecentPlace));
+router.delete("/remove-recent-place/:placeId", asyncHandler(removeRecentPlace));
 export default router;

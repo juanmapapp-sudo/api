@@ -7,6 +7,7 @@ import {
   ERROR_OTP_INVALID
 } from '../constants/auth.constant.js';
 import { findActiveUserByEmail, registerUser, updateOTP, markAsVerified, updatePassword } from '../services/auth.service.js';
+import { getRecentPlaceByUserId } from '../services/user.service.js';
 import { hashPassword, generateOTP } from '../utils/utils.js';
 import { sendEmailVerification, sendResetPasswordOtp } from '../services/email.service.js';
 
@@ -28,6 +29,12 @@ export async function login(req, res) {
     await sendResetPasswordOtp(email, otp);
     user = await updateOTP(email, otp);
     return res.status(401).json({ success: false, message: 'User is not verified' });
+  }
+
+  const recentPlaces = await getRecentPlaceByUserId(user?.userId);
+  user = {
+    ...user,
+    recentPlaces
   }
 
   delete user.password;
