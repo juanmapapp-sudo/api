@@ -34,7 +34,10 @@ export async function login(req, res) {
   const recentPlaces = await getRecentPlaceByUserId(user?.userId);
   user = {
     ...user,
-    recentPlaces
+    recentPlaces: recentPlaces.map(rp=> {
+      rp.types = JSON.parse(rp.types);
+      return rp;
+    })
   }
 
   delete user.password;

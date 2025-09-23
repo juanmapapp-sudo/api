@@ -1,5 +1,5 @@
-import pool from '../db/db.js';
-import camelcaseKeys from 'camelcase-keys';
+import pool from "../db/db.js";
+import camelcaseKeys from "camelcase-keys";
 
 export async function getById(userId) {
   const sql = `
@@ -13,7 +13,14 @@ export async function getById(userId) {
   return camelcaseKeys(result.rows[0]);
 }
 
-export async function updateUser(userId, firstName, lastName, email, birthDate, phoneNumber) {
+export async function updateUser(
+  userId,
+  firstName,
+  lastName,
+  email,
+  birthDate,
+  phoneNumber
+) {
   const sql = `
     UPDATE dbo."User" set 
     "FirstName" = $2 ,
@@ -53,13 +60,43 @@ export async function getRecentPlaceById(placeId) {
   return camelcaseKeys(result.rows[0]);
 }
 
-export async function addRecentPlaces(userId, placeId, name, formattedAddress, lat, lng, types) {
+export async function addRecentPlaces(
+  userId,
+  placeId,
+  name,
+  formattedAddress,
+  lat,
+  lng,
+  types // array or object; will be stored as JSONB
+) {
   const sql = `
-    INSERT INTO dbo."RecentPlaces" ("UserId", "PlaceId", "Name", "FormattedAddress", "Lat", "Lng", "Types")
-    VALUES ($1,$2,$3,$4,$5,$6,$7)
-    RETURNING "RecentPlaceId", "UserId", "PlaceId", "Name", "FormattedAddress", "Lat", "Lng", "Types", "CreatedAt";
+    INSERT INTO "dbo"."RecentPlaces"
+      ("UserId", "PlaceId", "Name", "FormattedAddress", "Lat", "Lng", "Types")
+    VALUES
+      ($1, $2, $3, $4, $5, $6, $7::jsonb)
+    ON CONFLICT ("UserId", "PlaceId")
+    DO UPDATE SET
+      "Name"              = EXCLUDED."Name",
+      "FormattedAddress"  = EXCLUDED."FormattedAddress",
+      "Lat"               = EXCLUDED."Lat",
+      "Lng"               = EXCLUDED."Lng",
+      "Types"             = EXCLUDED."Types"
+    RETURNING
+      "RecentPlaceId", "UserId", "PlaceId", "Name", "FormattedAddress",
+      "Lat", "Lng", "Types", "CreatedAt",
+      (xmax = 0) AS "inserted";  -- true if inserted, false if updated
   `;
-  const params = [userId, placeId, name, formattedAddress, lat, lng, types]; // Default OTP for now
+
+  const params = [
+    userId,
+    placeId,
+    name,
+    formattedAddress,
+    lat,
+    lng,
+    JSON.stringify(types ?? []), // ensure JSONB input
+  ];
+
   const result = await pool.query(sql, params);
   return camelcaseKeys(result.rows[0]);
 }

@@ -147,6 +147,7 @@ router.put('/:userId', [
  *             type: object
  *             required:
  *               - userId
+ *               - placeId
  *               - name
  *               - formattedAddress
  *               - lat
