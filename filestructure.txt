@@ -15,6 +15,7 @@
         |-- user.constant.js
     |-- controllers
         |-- auth.controller.js
+        |-- google-map.controller.js
         |-- user.controller.js
     |-- db
         |-- db.js
@@ -23,6 +24,7 @@
         |-- error-handler.js
     |-- routes
         |-- auth.routes.js
+        |-- google-map.routes.js
         |-- index.routes.js
         |-- user.routes.js
     |-- services

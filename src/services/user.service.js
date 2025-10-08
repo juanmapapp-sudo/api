@@ -40,8 +40,7 @@ export async function getRecentPlaceByUserId(userId) {
   const sql = `
     SELECT *
     FROM dbo."RecentPlaces"
-    WHERE "UserId" = $1
-    LIMIT 1;
+    WHERE "UserId" = $1;
   `;
   const result = await pool.query(sql, [userId]);
   if (result.rows.length === 0) return [];
