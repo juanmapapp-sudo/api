@@ -6,47 +6,38 @@
  */
 import { Router } from 'express';
 import { asyncHandler } from '../middlewares/async.js';
-import { getRouteByEndpoint } from '../controllers/google-map.controller.js';
+import { getGeoBoundary } from '../controllers/google-map.controller.js';
 
 const router = Router();
 
 /**
  * @openapi
- * /api/google-map/route:
- *   post:
+ * /api/google-map/boundary:
+ *   get:
  *     tags: [Google Map]
- *     summary: Get Google Map Directions route
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - origin
- *               - destination
- *               - mode
- *             properties:
- *               origin:
- *                 type: object
- *                 properties:
- *                   lat:
- *                     type: string
- *                   lng:
- *                     type: string
- *               destination:
- *                 type: object
- *                 properties:
- *                   lat:
- *                     type: string
- *                   lng:
- *                     type: string
- *               mode:
- *                 type: string
- *                 default: "driving"
+ *     summary: Get a user by userId
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: false
+ *         schema:
+ *           type: string
+ *           default: San Juan City
+ *       - in: query
+ *         name: hintLat
+ *         required: false
+ *         schema:
+ *           type: string
+ *           default: 14.603179674407787
+ *       - in: query
+ *         name: hintLng
+ *         required: false
+ *         schema:
+ *           type: string
+ *           default: 121.03603853653271
  *     responses:
  *       200:
- *         description: Google Map Directions route
+ *         description: Get Geo boundary
  *         content:
  *           application/json:
  *             schema:
@@ -57,27 +48,21 @@ const router = Router();
  *                 data:
  *                   type: object
  *                   properties:
- *                     overviewPath:
+ *                     name:
  *                       type: string
- *                     steps:
+ *                     displayName:
+ *                       type: string
+ *                     bbox:
+ *                       type: array
+ *                     paths:
  *                       type: array
  *                       items:
  *                         type: object
  *                         properties:
- *                           polyline:
+ *                           lat:
  *                             type: string
- *                           distance:
+ *                           lng:
  *                             type: string
- *                           distanceText:
- *                             type: string
- *                           street:
- *                             type: string
- *                     totalDistanceText:
- *                       type: string
- *                     durationText:
- *                       type: string
- *                     arrivalTimeText:
- *                       type: string
  */
-router.post("/route", asyncHandler(getRouteByEndpoint));
+router.get("/boundary", asyncHandler(getGeoBoundary));
 export default router;

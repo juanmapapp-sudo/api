@@ -1,101 +1,89 @@
-import fetch from 'node-fetch';
+import fetch from "node-fetch";
+import NodeCache from "node-cache";
+const cache = new NodeCache({ stdTTL: 60, checkperiod: 120 });
 
-/** Google Encoded Polyline -> [{lat,lng}, ...] */
-function decodePolyline(encoded = '') {
-  if (!encoded || typeof encoded !== 'string') return [];
-  let index = 0, lat = 0, lng = 0;
-  const coords = [];
-
-  while (index < encoded.length) {
-    let b, shift = 0, result = 0;
-
-    // latitude
-    do {
-      b = encoded.charCodeAt(index++) - 63;
-      result |= (b & 0x1f) << shift;
-      shift += 5;
-    } while (b >= 0x20);
-    const dlat = (result & 1) ? ~(result >> 1) : (result >> 1);
-    lat += dlat;
-
-    // longitude
-    shift = 0; result = 0;
-    do {
-      b = encoded.charCodeAt(index++) - 63;
-      result |= (b & 0x1f) << shift;
-      shift += 5;
-    } while (b >= 0x20);
-    const dlng = (result & 1) ? ~(result >> 1) : (result >> 1);
-    lng += dlng;
-
-    coords.push({ lat: lat / 1e5, lng: lng / 1e5 });
-  }
-  return coords;
+// GeoJSON → array of rings with {lat,lng}
+function geojsonToLatLngPaths(geojson) {
+  const toRing = (ring) => ring.map(([lng, lat]) => ({ lat, lng }));
+  if (!geojson) return [];
+  if (geojson.type === "Polygon") return geojson.coordinates.map(toRing);
+  if (geojson.type === "MultiPolygon") return geojson.coordinates.flat(1).map(toRing);
+  return [];
 }
 
-const stripHtml = (s = '') =>
-  String(s).replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');
+// pick the best candidate near a hint coordinate using bounding box
+function pickBestCandidate(candidates, hint) {
+  const score = (d) => {
+    const bb = (d.boundingbox || []).map(parseFloat); // [south, north, west, east]
+    if (bb.length !== 4) return Number.POSITIVE_INFINITY;
+    const [south, north, west, east] = bb;
+    const inside = hint && hint.lat >= south && hint.lat <= north && hint.lng >= west && hint.lng <= east;
+    if (inside) return 0;
+    const cx = (west + east) / 2, cy = (south + north) / 2;
+    const dx = hint ? (hint.lng - cx) : 0, dy = hint ? (hint.lat - cy) : 0;
+    return Math.hypot(dx, dy);
+  };
+  return candidates.sort((a, b) => score(a) - score(b))[0];
+}
 
-export async function getRouteByEndpoint(req, res) {
+export async function getGeoBoundary(req, res) {
   try {
-    const { origin, destination, mode = 'driving' } = req.body || {};
-    if (
-      !origin || typeof origin.lat !== 'number' || typeof origin.lng !== 'number' ||
-      !destination || typeof destination.lat !== 'number' || typeof destination.lng !== 'number'
-    ) {
-      return res.status(400).json({
-        success: false,
-        error: 'origin and destination are required as { lat: number, lng: number }'
-      });
-    }
+    const q = (req.query.q || "San Juan City").toString();
+    const hintLat = req.query.hintLat ? parseFloat(req.query.hintLat) : undefined;
+    const hintLng = req.query.hintLng ? parseFloat(req.query.hintLng) : undefined;
+    if (!q) return res.status(400).json({ success: false, message: "q is required" });
 
-    // const key = process.env.GMAPS_SERVER_KEY;
-    const key = "AIzaSyDR-W089hOKqMTmH7PQWvpU1P4TxegKqXY";
-    if (!key) {
-      return res.status(500).json({ success: false, error: 'GMAPS_SERVER_KEY is not set' });
-    }
+    const cacheKey = `nominatim:${q}:${hintLat ?? "14.603179674407787"}:${hintLng ?? "121.03603853653271"}`;
+    const hit = cache.get(cacheKey);
+    if (hit) return res.json(hit);
 
-    const url = new URL('https://maps.googleapis.com/maps/api/directions/json');
-    url.searchParams.set('origin', `${origin.lat},${origin.lng}`);
-    url.searchParams.set('destination', `${destination.lat},${destination.lng}`);
-    url.searchParams.set('mode', mode);
-    url.searchParams.set('alternatives', 'false');
-    url.searchParams.set('key', key);
-
-    const j = await (await fetch(url)).json();
-
-    if (j.status !== 'OK' || !j.routes?.length) {
-      return res.status(422).json({
-        success: false,
-        error: j.error_message || 'No route found',
-        gmapsStatus: j.status
-      });
-    }
-
-    const route = j.routes[0];
-    const leg = route.legs?.[0];
-
-    const path = decodePolyline(route.overview_polyline?.points || '');
-
-    const steps = (leg?.steps || []).map((s) => ({
-      polyline: decodePolyline(s.polyline?.points || ''),
-      distance: s.distance?.value ?? 0,
-      distanceText: s.distance?.text ?? '',
-      street: stripHtml(s.html_instructions ?? '')
-    }));
-
-    return res.json({
-      data: {
-        overviewPath: path,
-        steps,
-        totalDistanceText: leg?.distance?.text ?? '',
-        durationText: leg?.duration?.text ?? '',
-        arrivalTimeText: leg?.arrival_time?.text ?? ''
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&polygon_geojson=1&q=${encodeURIComponent(q)}`;
+    const r = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "JuanMap/1.0 (support@yourdomain.com)",
       },
-      success: true
     });
-  } catch (err) {
-    console.error('getRouteByEndpoint error:', err);
-    return res.status(500).json({ success: false, error: 'Failed to fetch route' });
+
+    if (!r.ok) throw new Error(`Nominatim ${r.status}`);
+    const data = await r.json();
+
+    const candidates = (data || []).filter(
+      (d) => d?.geojson && (d.geojson.type === "Polygon" || d.geojson.type === "MultiPolygon")
+    );
+    if (!candidates.length)
+      return res.status(404).json({ success: false, message: "No polygon found" });
+
+    const best = pickBestCandidate(
+      candidates,
+      hintLat && hintLng ? { lat: hintLat, lng: hintLng } : undefined
+    );
+
+    const paths = geojsonToLatLngPaths(best.geojson);
+
+    // 👇 NEW: compute outer rings only (first ring of each polygon)
+    let outerRings = [];
+    if (best.geojson.type === "Polygon") {
+      outerRings = [paths[0]]; // first ring is the outer boundary
+    } else if (best.geojson.type === "MultiPolygon") {
+      // keep polygon structure to get the first ring of each polygon
+      outerRings = best.geojson.coordinates.map(poly =>
+        poly[0].map(([lng, lat]) => ({ lat, lng }))
+      );
+    }
+
+    const payload = {
+      name: best?.name || q,
+      displayName: best?.display_name || q,
+      bbox: best?.boundingbox || null,
+      paths,        // all rings (outer + holes)
+      outerRings,   // 👈 add this: only outers (for outline + mask + geofence)
+    };
+
+    cache.set(cacheKey, payload);
+    return res.status(200).json({ success: true, data: payload });
+  } catch (e) {
+    console.error(e);
+    return res.status(502).json({ success: false, message: String(e) });
   }
 }
