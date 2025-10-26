@@ -26,5 +26,8 @@ export const env = {
     evTemplate: process.env.EV_TEMPLATE,
     evResetTemplate: process.env.EV_RESET_TEMPLATE,
     
+  },
+  elevenLabs: {
+    TTS_KEY: process.env.ELEVENLABS_TTS_KEY
   }
 };

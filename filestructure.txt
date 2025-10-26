@@ -16,6 +16,7 @@
     |-- controllers
         |-- auth.controller.js
         |-- google-map.controller.js
+        |-- tts.controller.js
         |-- user.controller.js
     |-- db
         |-- db.js
@@ -26,10 +27,12 @@
         |-- auth.routes.js
         |-- google-map.routes.js
         |-- index.routes.js
+        |-- tts.routes.js
         |-- user.routes.js
     |-- services
         |-- auth.service.js
         |-- email.service.js
+        |-- tts.service.js
         |-- user.service.js
     |-- utils
         |-- utils.js
