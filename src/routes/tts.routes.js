@@ -10,41 +10,6 @@ import { generate } from '../controllers/tts.controller.js';
 
 const router = Router();
 
-/**
- * @openapi
- * /api/tts:
- *   post:
- *     tags: [Text To Speech]
- *     summary: Get Text to Speech
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - text
- *               - source
- *               - target
- *             properties:
- *               text:
- *                 type: string
- *               source:
- *                 type: string
- *                 example: auto
- *               target:
- *                 type: string
- *                 example: tl
- *     responses:
- *       200:
- *         description: Text to Speech
- *         content:
- *           audio/mpeg:
- *             schema:
- *               type: string
- *               format: binary
- */
-router.post('/', asyncHandler(generate));
 
 /**
  * @openapi

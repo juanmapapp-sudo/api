@@ -7,7 +7,7 @@ export async function generate(req, res) {
       text = "",
       source = "auto",
       target = "fil", // or "tl"
-    } = req.body || req.query;
+    } = req.query || {};
 
     if (!text.trim()) {
       return res
@@ -19,7 +19,8 @@ export async function generate(req, res) {
 
     // 1) Translate (only if needed inside your translateText impl)
     if(target === "eng") {
-      audio = await textToSpeech(text);
+      // audio = await textToSpeech(text);
+      audio = await getTTS(text);
     } else {
       translated = await translateText(text, source, target);
       audio = await getTTS(translated);
