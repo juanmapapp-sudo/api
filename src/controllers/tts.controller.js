@@ -1,5 +1,5 @@
 //controllers/tts.controller.js
-import { translateText, textToSpeech } from "../services/tts.service.js";
+import { translateText, textToSpeech, getTTS } from "../services/tts.service.js";
 
 export async function generate(req, res) {
   try {
@@ -15,14 +15,20 @@ export async function generate(req, res) {
         .json({ success: false, message: "'text' is required" });
     }
 
+    let translated, audio;
+
     // 1) Translate (only if needed inside your translateText impl)
-    const translated = await translateText(text, source, target);
+    if(target === "eng") {
+      audio = await textToSpeech(text);
+    } else {
+      translated = await translateText(text, source, target);
+      audio = await getTTS(translated);
+    }
 
     // 2) TTS — design your service to return either:
     // - a Node Readable stream,
     // - a fetch Response (with .body as a stream),
     // - a Buffer / ArrayBuffer / base64 string.
-    const audio = await textToSpeech(translated);
 
     // 3) Set headers once before sending audio
     res.set({
