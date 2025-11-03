@@ -8,7 +8,6 @@
 
 import axios from "axios";
 import NodeCache from "node-cache";
-import { env } from "../config/env.js";
 import "../loader/tts.wasm-loader.js";
 import text2wav from "text2wav";
 import * as WavDecoder from "wav-decoder";

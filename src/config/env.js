@@ -25,6 +25,8 @@ export const env = {
     evUrl: process.env.EV_URL,
     evTemplate: process.env.EV_TEMPLATE,
     evResetTemplate: process.env.EV_RESET_TEMPLATE,
-    
+  },
+  googleMap: {
+    APIKey: process.env.GOOGLE_MAP_API_KEY
   }
 };
