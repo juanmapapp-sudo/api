@@ -35,7 +35,7 @@ export async function update(req, res) {
   if(!userId) {
       return res.status(400).json({ success: false, message: "Missing userId params" });
   }
-  const { firstName, lastName, email, birthDate, phoneNumber, password } = req.body;
+  const { firstName, lastName, email, birthDate, phoneNumber } = req.body;
 
   let user;
 
@@ -45,7 +45,7 @@ export async function update(req, res) {
     if(!user) {
       return res.status(400).json({ success: false, message: ERROR_USER_NOT_FOUND });
     } else {
-      user = await updateUser(userId, firstName, lastName, email, birthDate, phoneNumber, password);
+      user = await updateUser(userId, firstName, lastName, email, birthDate, phoneNumber);
     }
 
     delete user.passwordHash;

@@ -28,27 +28,34 @@ export async function getAllReports(lat, lng, radiusKmInput) {
 
   const sql = `
     WITH params AS (
-      SELECT $1::double precision AS lat0,
-             $2::double precision AS lng0,
-             $3::double precision AS r_m
-    )
-    SELECT
-      r."ReportId", r."ReportType", r."CreatedByUser", r."Description",
-      r."CreatedAt", r."Latitude", r."Longitude", r."RoutePolyline",
-      ROUND((earth_distance(
-               ll_to_earth(p.lat0, p.lng0),
-               ll_to_earth(r."Latitude", r."Longitude")
-             ) / 1000.0)::numeric, 3) AS distance_km
-    FROM dbo."Reports" r
-    CROSS JOIN params p
-    WHERE r."CreatedAt" >= NOW() - INTERVAL '24 hours'
-      AND earth_box(ll_to_earth(p.lat0, p.lng0), p.r_m)
-          @> ll_to_earth(r."Latitude", r."Longitude")
-      AND earth_distance(
-            ll_to_earth(p.lat0, p.lng0),
-            ll_to_earth(r."Latitude", r."Longitude")
-          ) <= p.r_m
-    ORDER BY distance_km;
+        SELECT $1::double precision AS lat0,
+              $2::double precision AS lng0,
+              $3::double precision AS r_m
+      )
+      SELECT
+        r."ReportId", r."ReportType", r."CreatedByUser", r."Description",
+        r."CreatedAt", r."Latitude", r."Longitude", r."RoutePolyline",
+        (
+          ROUND(
+            (
+              earth_distance(
+                ll_to_earth(p.lat0, p.lng0),
+                ll_to_earth(r."Latitude", r."Longitude")
+              ) / 1000.0
+            )::numeric,
+            3
+          )::double precision
+        ) AS distance_km
+      FROM dbo."Reports" r
+      CROSS JOIN params p
+      WHERE r."CreatedAt" >= NOW() - INTERVAL '24 hours'
+        AND earth_box(ll_to_earth(p.lat0, p.lng0), p.r_m)
+            @> ll_to_earth(r."Latitude", r."Longitude")
+        AND earth_distance(
+              ll_to_earth(p.lat0, p.lng0),
+              ll_to_earth(r."Latitude", r."Longitude")
+            ) <= p.r_m
+      ORDER BY distance_km;
   `;
 
   const params = [latNum, lngNum, radiusM];
